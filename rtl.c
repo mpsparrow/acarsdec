@@ -291,13 +291,13 @@ int initRtl(char **argv, int optind)
 	return 0;
 }
 
-void input_thread(void* arguments)
+void decode_thread(void* arguments)
 {
 	int i, m;
 	float complex D, * wf;
 	thargs_t* args = (thargs_t*)arguments;
 	channel_t* ch = args->ch;
-	unsigned char* rtlinbuff = args->buf;
+	unsigned char* rtlinbuff = (unsigned int*)(args->buf);
 
 	wf = ch->wf;
 	m = 0;
@@ -340,7 +340,7 @@ static void in_callback(unsigned char *rtlinbuff, uint32_t nread, void *ctx)
 
 		if (threaded)
 		{
-			ths[n].res = pthread_create(&(ths[n].th), NULL, input_thread, &(args[n]));
+			ths[n].res = pthread_create(&(ths[n].th), NULL, decode_thread, &(args[n]));
 			if (ths[n].res)
 			{
 				fprintf(stderr, "error: failed to launch thread\n");
@@ -349,7 +349,7 @@ static void in_callback(unsigned char *rtlinbuff, uint32_t nread, void *ctx)
 		}
 		else
 		{
-			input_thread(&args[n]);
+			decode_thread(&args[n]);
 		}
 	}
 
