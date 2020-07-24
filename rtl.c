@@ -297,7 +297,7 @@ void decode_thread(void* arguments)
 	float complex D, * wf;
 	thargs_t* args = (thargs_t*)arguments;
 	channel_t* ch = args->ch;
-	unsigned char* rtlinbuff = (unsigned int*)(args->buf);
+	unsigned char* rtlinbuff = (unsigned char*)(args->buf);
 
 	wf = ch->wf;
 	m = 0;
