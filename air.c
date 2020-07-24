@@ -273,7 +273,7 @@ static int rx_callback(airspy_transfer_t* transfer)
 	{
 		for (n = 0; n < nbch; n++)
 		{
-			pthread_join(&(ths[n].th), &(ths[n].ret));
+			pthread_join(ths[n].th, &(ths[n].ret));
 			temp += *((int*)ths[n].ret);
 		}
 	}
