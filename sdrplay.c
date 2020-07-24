@@ -193,7 +193,43 @@ mir_sdr_ErrT err;
 	   fprintf (stderr, "SDRplay device selects freq %d and sets %d as gain reduction\n",
 	         Fc, get_lnaGRdB (hwVersion, lnaState) + GRdB);
 	
+	if (verbose)
+	{
+		if (threaded)
+		{
+			fprintf(stderr, "Use SDRplay in Threaded mode\n");
+		}
+	}
+
 	return 0;
+}
+
+void decode_thread(void* arguments)
+{
+	thargs_t* args = (thargs_t*)arguments;
+	channel_t* ch = args->ch;
+
+	int i;
+	int	local_ind;
+
+	local_ind = current_index;
+	float complex D = ch->D;
+	for (i = 0; i < args->numSamples; i++) {
+		float r = ((float)(args->xi[i]));
+		float g = ((float)(args->xq[i]));
+		float complex v = r + g * I;
+		D += v * ch->oscillator[local_ind++];
+		if (local_ind >= SDRPLAY_MULT) {
+			ch->dm_buffer[ch->counter++] = cabsf(D) / 4;
+			local_ind = 0;
+			D = 0;
+			if (ch->counter >= 512) {
+				demodMSK(ch, 512);
+				ch->counter = 0;
+			}
+		}
+	}
+	ch->D = D;
 }
 
 static
@@ -209,30 +245,37 @@ void myStreamCallback (int16_t		*xi,
 	               uint32_t		reset,
 	               uint32_t		hwRemoved,
 	               void		*cbContext) {
-int n, i;
-int	local_ind;
+	int n;
+
+	thread_t ths[nbch];
+	thargs_t args[nbch];
 
 	for (n = 0; n < nbch; n ++) {
-	   local_ind = current_index;
-	   channel_t *ch = &(channel [n]);
-	   float complex D	= ch -> D;
-	   for (i = 0; i < numSamples; i ++) {
-	      float r = ((float)(xi [i]));
-	      float g = ((float)(xq [i]));
-	      float complex v = r + g * I;
-	      D  += v * ch -> oscillator [local_ind ++];
-	      if (local_ind >= SDRPLAY_MULT) {
-	         ch -> dm_buffer [ch -> counter ++] = cabsf (D) / 4;
-	         local_ind = 0;
-	         D = 0;
-	         if (ch -> counter >= 512) {
-	            demodMSK (ch, 512);
-	            ch -> counter = 0;
-	         }
-	      }
-	   }
-	   ch -> D = D;
+		args[n].ch = &(channel[n]);
+		args[n].xi = xi;
+		args[n].xq = xq;
+		if (threaded)
+		{
+			ths[n].res = pthread_create(&(ths[n].th), NULL, decode_thread, &(args[n]));
+			if (ths[n].res)
+			{
+				fprintf(stderr, "error: failed to create thread\n");
+			}
+		}
+		else
+		{
+			decode_thread(&(args[n]));
+		}
 	}
+
+	if (threaded)
+	{
+		for (n = 0; n < nbch; n++)
+		{
+			pthread_join(ths[n].th, &(ths[n].ret));
+		}
+	}
+
 	current_index	= (current_index + numSamples) % SDRPLAY_MULT;
 }
 

@@ -99,7 +99,13 @@ typedef struct {
 } thread_t;
 
 typedef struct {
+#if defined(WITH_SDRPLAY)
+	int16_t* xi;
+	int16_t* xq;
+	uint32_t numSamples;
+#else
 	void* buf;
+#endif
 	channel_t* ch;
 } thargs_t;
 
