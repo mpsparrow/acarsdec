@@ -248,7 +248,8 @@ static int rx_callback(airspy_transfer_t* transfer)
 	thread_t ths[nbch];
 	thargs_t thargs[nbch];
 
-	int n;
+	int n, temp;
+	temp = 0;
 	for(n=0;n<nbch;n++) {
 		thargs[n].buf = (void*)transfer;
 		thargs[n].ch = &(channel[n]);
@@ -264,7 +265,7 @@ static int rx_callback(airspy_transfer_t* transfer)
 		}
 		else
 		{
-			decode_thread(&(thargs[nbch]));
+			temp += decode_thread(&(thargs[nbch]));
 		}
 	}
 
@@ -273,10 +274,11 @@ static int rx_callback(airspy_transfer_t* transfer)
 		for (n = 0; n < nbch; n++)
 		{
 			pthread_join(&(ths[n].th), &(ths[n].ret));
-			ind += *((int*)ths[n].ret);
+			temp += *((int*)ths[n].ret);
 		}
 	}
 
+	ind += temp;
 	return 0;
 }
 
