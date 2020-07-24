@@ -191,6 +191,7 @@ int main(int argc, char **argv)
 #ifdef WITH_RTL
 		case 'r':
 			res = initRtl(argv, optind);
+			printf("Done!");
 			inmode = 3;
 			break;
 		case 'p':

@@ -283,9 +283,41 @@ int initRtl(char **argv, int optind)
 	return 0;
 }
 
+void input_thread(void* arguments)
+{
+	int i, m;
+	float complex D, * wf;
+	thargs_t* args = (thargs_t*)arguments;
+	channel_t* ch = args->ch;
+	unsigned char* rtlinbuff = args->buf;
+
+	wf = ch->wf;
+	m = 0;
+	for (i = 0; i < RTLINBUFSZ;) {
+		int ind;
+
+		D = 0;
+		for (ind = 0; ind < RTLMULT; ind++) {
+			float r, g;
+			float complex v;
+
+			r = (float)rtlinbuff[i] - (float)127.37; i++;
+			g = (float)rtlinbuff[i] - (float)127.37; i++;
+
+			v = r + g * I;
+			D += v * wf[ind];
+		}
+		ch->dm_buffer[m++] = cabsf(D);
+	}
+
+	demodMSK(ch, m);
+}
+
 static void in_callback(unsigned char *rtlinbuff, uint32_t nread, void *ctx)
 {
 	int n;
+	thread_t ths[nbch];
+	thargs_t args[nbch];
 
 	if (nread != RTLINBUFSZ) {
 		fprintf(stderr, "warning: partial read\n");
@@ -295,29 +327,19 @@ static void in_callback(unsigned char *rtlinbuff, uint32_t nread, void *ctx)
 	status=0;
 
 	for (n = 0; n < nbch; n++) {
-		channel_t *ch = &(channel[n]);
-		int i,m;
-		float complex D,*wf;
-
-		wf = ch->wf;
-		m=0;
-		for (i = 0; i < RTLINBUFSZ;) {
-			int ind;
-
-			D = 0;
-			for (ind = 0; ind < RTLMULT; ind++) {
-				float r, g;
-				float complex v;
-
-				r = (float)rtlinbuff[i] - (float)127.37; i++;
-				g = (float)rtlinbuff[i] - (float)127.37; i++;
-
-				v=r+g*I;
-				D+=v*wf[ind];
-			}
-			ch->dm_buffer[m++]=cabsf(D);
+		args[n].buf = rtlinbuff;
+		args[n].ch = &(channel[n]);
+		ths[n].res = pthread_create(&(ths[n].th), NULL, input_thread, &(args[n]));
+		if (ths[n].res)
+		{
+			fprintf(stderr, "error: failed to launch thread\n");
+			continue;
 		}
-		demodMSK(ch,m);
+	}
+
+	for (n = 0; n < nbch; n++)
+	{
+		pthread_join(ths[n].th, &(ths[n].ret));
 	}
 }
 
@@ -326,6 +348,7 @@ int runRtlSample(void)
 	int r;
 
 	status = 1;
+	// TODO: The program seems to hang here
 	r = rtlsdr_read_async(dev, in_callback, NULL, 4, RTLINBUFSZ);
 	if (r) {
 		fprintf(stderr, "Read async %d\n", r);
