@@ -280,6 +280,14 @@ int initRtl(char **argv, int optind)
 		return 1;
 	}
 
+	if (verbose)
+	{
+		if (threaded)
+		{
+			fprintf(stderr, "Running RTL in threaded mode.\n");
+		}
+	}
+
 	return 0;
 }
 
@@ -329,17 +337,28 @@ static void in_callback(unsigned char *rtlinbuff, uint32_t nread, void *ctx)
 	for (n = 0; n < nbch; n++) {
 		args[n].buf = rtlinbuff;
 		args[n].ch = &(channel[n]);
-		ths[n].res = pthread_create(&(ths[n].th), NULL, input_thread, &(args[n]));
-		if (ths[n].res)
+
+		if (threaded)
 		{
-			fprintf(stderr, "error: failed to launch thread\n");
-			continue;
+			ths[n].res = pthread_create(&(ths[n].th), NULL, input_thread, &(args[n]));
+			if (ths[n].res)
+			{
+				fprintf(stderr, "error: failed to launch thread\n");
+				continue;
+			}
+		}
+		else
+		{
+			input_thread(&args[n]);
 		}
 	}
 
-	for (n = 0; n < nbch; n++)
+	if (threaded)
 	{
-		pthread_join(ths[n].th, &(ths[n].ret));
+		for (n = 0; n < nbch; n++)
+		{
+			pthread_join(ths[n].th, &(ths[n].ret));
+		}
 	}
 }
 

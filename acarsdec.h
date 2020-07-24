@@ -149,6 +149,7 @@ extern int netout;
 extern int airflt;
 extern int mdly;
 extern int hourly, daily;
+extern int threaded;
 
 extern int gain;
 extern int ppm;

@@ -43,6 +43,7 @@ int airflt = 0;
 int mdly=600;
 int hourly = 0;
 int daily = 0;
+int threaded = 0;
 
 #ifdef WITH_RTL
 int gain = 1000;
@@ -161,7 +162,7 @@ int main(int argc, char **argv)
 	idstation = strndup(sys_hostname, 32);
 
 	res = 0;
-	while ((c = getopt(argc, argv, "HDvarfsRo:t:g:Ap:n:N:j:l:c:i:L:G:b:")) != EOF) {
+	while ((c = getopt(argc, argv, "HDvarfsRTo:t:g:Ap:n:N:j:l:c:i:L:G:b:")) != EOF) {
 
 		switch (c) {
 		case 'v':
@@ -252,6 +253,9 @@ int main(int argc, char **argv)
 		case 'i':
 			free(idstation);
 			idstation = strndup(optarg, 32);
+			break;
+		case 'T':
+			threaded = 1;
 			break;
 
 		default:
