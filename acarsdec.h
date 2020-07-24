@@ -93,6 +93,17 @@ typedef struct {
 } channel_t;
 
 typedef struct {
+	int res;
+	pthread_t th;
+	void* ret;
+} thread_t;
+
+typedef struct {
+	unsigned char* buf;
+	channel_t* ch;
+} thargs_t;
+
+typedef struct {
         char da[5];
         char sa[5];
         char eta[5];
@@ -138,6 +149,7 @@ extern int netout;
 extern int airflt;
 extern int mdly;
 extern int hourly, daily;
+extern int threaded;
 
 extern int gain;
 extern int ppm;

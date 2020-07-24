@@ -1,4 +1,7 @@
+.vs
+out
 acarsdec
 acarsserv
 .*.swp
 *.o
+*.json

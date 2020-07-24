@@ -31,6 +31,8 @@ It allows the user to directly monitor to up to 8 different frequencies simultan
  -H :			rotate log file once every hour
 
  -D :			rotate log file once every day
+
+ -T :			decode channels in seperate threads
  
  -n ipaddr:port :	send acars messages to addr:port via UDP in planeplotter compatible format
  

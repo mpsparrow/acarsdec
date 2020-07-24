@@ -43,6 +43,7 @@ int airflt = 0;
 int mdly=600;
 int hourly = 0;
 int daily = 0;
+int threaded = 0;
 
 #ifdef WITH_RTL
 int gain = 1000;
@@ -67,7 +68,7 @@ static void usage(void)
 	fprintf(stderr,	"(libacars %s)\n", LA_VERSION);
 #endif
 	fprintf(stderr,
-		"\nUsage: acarsdec  [-v] [-o lv] [-t time] [-A] [-n ipaddr:port] [-l logfile [-H|-D]]");
+		"\nUsage: acarsdec  [-v] [-o lv] [-t time] [-A] [-n ipaddr:port] [-l logfile [-H|-D]] [-T]");
 #ifdef WITH_ALSA
 	fprintf(stderr, " -a alsapcmdevice  |");
 #endif
@@ -99,6 +100,8 @@ static void usage(void)
 		" -H\t\t\t: rotate log file once every hour\n");
 	fprintf(stderr,
 		" -D\t\t\t: rotate log file once every day\n");
+	fprintf(stderr,
+		" -T\t\t\t: decode channels in seperate threads\n");
 	fprintf(stderr,
 		" -n ipaddr:port\t\t: send acars messages to addr:port on UDP in planeplotter compatible format\n");
 	fprintf(stderr,
@@ -161,7 +164,7 @@ int main(int argc, char **argv)
 	idstation = strndup(sys_hostname, 32);
 
 	res = 0;
-	while ((c = getopt(argc, argv, "HDvarfsRo:t:g:Ap:n:N:j:l:c:i:L:G:b:")) != EOF) {
+	while ((c = getopt(argc, argv, "HDvarfsRTo:t:g:Ap:n:N:j:l:c:i:L:G:b:")) != EOF) {
 
 		switch (c) {
 		case 'v':
@@ -191,6 +194,7 @@ int main(int argc, char **argv)
 #ifdef WITH_RTL
 		case 'r':
 			res = initRtl(argv, optind);
+			printf("Done!");
 			inmode = 3;
 			break;
 		case 'p':
@@ -251,6 +255,9 @@ int main(int argc, char **argv)
 		case 'i':
 			free(idstation);
 			idstation = strndup(optarg, 32);
+			break;
+		case 'T':
+			threaded = 1;
 			break;
 
 		default:
