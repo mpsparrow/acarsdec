@@ -335,7 +335,7 @@ static void in_callback(unsigned char *rtlinbuff, uint32_t nread, void *ctx)
 	status=0;
 
 	for (n = 0; n < nbch; n++) {
-		args[n].buf = rtlinbuff;
+		args[n].buf = (void*)rtlinbuff;
 		args[n].ch = &(channel[n]);
 
 		if (threaded)
