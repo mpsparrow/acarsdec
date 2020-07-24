@@ -349,7 +349,7 @@ static void in_callback(unsigned char *rtlinbuff, uint32_t nread, void *ctx)
 		}
 		else
 		{
-			input_thread(&args[n]);
+			decode_thread(&args[n]);
 		}
 	}
 
