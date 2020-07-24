@@ -99,7 +99,7 @@ typedef struct {
 } thread_t;
 
 typedef struct {
-	unsigned char* buf;
+	void* buf;
 	channel_t* ch;
 } thargs_t;
 
