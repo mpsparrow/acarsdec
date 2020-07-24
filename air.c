@@ -250,6 +250,9 @@ static int rx_callback(airspy_transfer_t* transfer)
 
 	int n;
 	for(n=0;n<nbch;n++) {
+		thargs[n].buf = (void*)transfer;
+		thargs[n].ch = &(channel[n]);
+
 		if (threaded)
 		{
 			ths[n].res = pthread_create(&(ths[n].th), NULL, decode_thread, &(thargs[n]));
