@@ -178,60 +178,107 @@ int initAirspy(char **argv, int optind)
 		}
 	}
 
+	if (verbose)
+	{
+		if (threaded)
+		{
+			fprintf(stderr, "Running airspy in Threaded mode\n");
+		}
+	}
+
 	return 0;
+}
+
+int decode_thread(void* arguments)
+{
+	thargs_t* args = (thargs_t*)arguments;
+
+	airspy_transfer_t* transfer = (airspy_transfer_t*)(args->buf);
+	channel_t* ch = &(args->ch);
+
+	float S;
+	int k, bn, m;
+	float complex D;
+
+	float* pt_rx_buffer;
+	int i;
+
+	pt_rx_buffer = (float*)(transfer->samples);
+	int bo, be, ben, nbk;
+
+	bo = AIRMULT - ind;
+	nbk = (transfer->sample_count - bo) / AIRMULT;
+	be = nbk * AIRMULT + bo;
+	ben = transfer->sample_count - be;
+
+	D = ch->D;
+
+	/* compute */
+	m = 0; k = 0;
+	for (i = ind; i < AIRMULT; i++, k++) {
+		S = pt_rx_buffer[k];
+		D += ch->wf[i] * S;
+	}
+	ch->dm_buffer[m++] = cabsf(D);
+
+	for (bn = 0; bn < nbk; bn++) {
+		D = 0;
+		for (i = 0; i < AIRMULT; i++, k++) {
+			S = pt_rx_buffer[k];
+			D += ch->wf[i] * S;
+		}
+		ch->dm_buffer[m++] = cabsf(D);
+	}
+
+	D = 0;
+	for (i = 0; i < ben; i++, k++) {
+		S = pt_rx_buffer[k];
+		D += ch->wf[i] * S;
+	}
+	ch->D = D;
+
+	demodMSK(ch, m);
+
+	return ben;
 }
 
 int ind=0;
 static int rx_callback(airspy_transfer_t* transfer)
 {
+	thread_t ths[nbch];
+	thargs_t thargs[nbch];
 
-	float* pt_rx_buffer;	
-	int n,i;
-        int bo,be,ben,nbk;
-
-	pt_rx_buffer = (float *)(transfer->samples);
-
-        bo=AIRMULT-ind;
-        nbk=(transfer->sample_count-bo)/AIRMULT;
-        be=nbk*AIRMULT+bo;
-        ben=transfer->sample_count-be;
-
+	int n, temp;
+	temp = 0;
 	for(n=0;n<nbch;n++) {
-        	channel_t *ch = &(channel[n]);
-                float S;
-                int k,bn,m;
-        	float complex D;
+		thargs[n].buf = (void*)transfer;
+		thargs[n].ch = &(channel[n]);
 
-        	D=ch->D;
-
-                /* compute */
-                m=0;k=0;
-                for (i=ind; i < AIRMULT;i++,k++) {
-                        S = pt_rx_buffer[k];
-                        D += ch->wf[i] * S;
-                 }
-                 ch->dm_buffer[m++]=cabsf(D);
-
-                 for (bn=0; bn<nbk;bn++) {
-                        D=0;
-                        for (i=0; i < AIRMULT;i++,k++) {
-                                S = pt_rx_buffer[k];
-                                D += ch->wf[i] * S;
-                        }
-                        ch->dm_buffer[m++]=cabsf(D);
-                 }
-
-                 D=0;
-                 for (i=0; i<ben;i++,k++) {
-                        S = pt_rx_buffer[k];
-                        D += ch->wf[i] * S;
-                 }
-        	 ch->D=D;
-
-                 demodMSK(ch,m);
+		if (threaded)
+		{
+			ths[n].res = pthread_create(&(ths[n].th), NULL, decode_thread, &(thargs[n]));
+			if (ths[n].res)
+			{
+				fprintf(stderr, "error: failed to open thread");
+				continue;
+			}
+		}
+		else
+		{
+			temp += decode_thread(&(thargs[nbch]));
+		}
 	}
-        ind=ben;
 
+	if (threaded)
+	{
+		for (n = 0; n < nbch; n++)
+		{
+			pthread_join(ths[n].th, &(ths[n].ret));
+			temp += *((int*)ths[n].ret);
+		}
+	}
+
+	ind += temp;
 	return 0;
 }
 
